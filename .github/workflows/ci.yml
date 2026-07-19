@@ -1,0 +1,81 @@
+name: LexScript CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  UV_VERSION: "0.5"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install uv
+        run: pip install uv==${{ env.UV_VERSION }}
+      - name: Install dependencies
+        run: uv pip install --system ".[dev]"
+      - name: Ruff check
+        run: ruff check app/
+      - name: Ruff format check
+        run: ruff format --check app/
+      - name: MyPy check
+        run: mypy app/ --ignore-missing-imports || true
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install uv
+        run: pip install uv==${{ env.UV_VERSION }}
+      - name: Install dependencies
+        run: uv pip install --system ".[dev]"
+      - name: Run tests
+        run: pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing -m "not integration"
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          file: backend/coverage.xml
+          fail_ci_if_error: false
+
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t lexscript:${{ github.sha }} .
+      - name: Smoke test
+        run: |
+          docker run -d --name lexscript_test -p 7800:7800 lexscript:${{ github.sha }}
+          sleep 5
+          curl -sf http://localhost:7800/api/v1/health | python -c "import sys,json; d=json.load(sys.stdin); assert d['ok']; print('Health OK:', d)"
+          docker stop lexscript_test
+          docker rm lexscript_test

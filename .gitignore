@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+.venv/
+*.so
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Data (runtime generated)
+backend/data/
+backend/*.db
+backend/*.sqlite
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.nuxt/
+frontend/.output/
+
+# ChromaDB
+chroma_data/
+vector_store/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Tunnel cache
+/tmp/legal_saas_tunnel.json
+tunnel_url.txt
+
+# Knowledge base / seed data
+knowledge_base/
+
+# Playwright snapshots
+.playwright-mcp/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Claude
+.claude/

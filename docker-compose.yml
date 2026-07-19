@@ -1,0 +1,36 @@
+services:
+  lexscript:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lexscript
+    ports:
+      - "7800:7800"
+    volumes:
+      - lexscript_data:/app/data
+    environment:
+      - LEGAL_HOST=0.0.0.0
+      - LEGAL_PORT=7800
+      - LEGAL_DEBUG=false
+      - LEGAL_SINGLE_USER=true
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - MINIMAX_BASE_URL=${MINIMAX_BASE_URL:-https://api.MiniMax.io/v1}
+      - MINIMAX_MODEL=${MINIMAX_MODEL:-MiniMax-M3}
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:7800/api/v1/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - lexscript_net
+
+networks:
+  lexscript_net:
+    driver: bridge
+
+volumes:
+  lexscript_data:
+    driver: local
