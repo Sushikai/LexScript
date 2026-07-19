@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
 import type { FileEntry, Statute, Template } from "@/types"
+import { useAuthStore } from "@/stores/auth"
 
 const API = "/api/v1"
+const auth = useAuthStore()
 
 type PanelTab = "files" | "statutes" | "templates" | "info"
 const activeTab = ref<PanelTab>("files")
 
 const files = ref<FileEntry[]>([])
 async function loadFiles() {
-  try { const r = await fetch(`${API}/files`); const d = await r.json(); files.value = (d.data || []).slice(0, 20) } catch { files.value = [] }
+  try { const r = await fetch(`${API}/files`, { headers: auth.setTokenHeader() }); const d = await r.json(); files.value = (d.data || []).slice(0, 20) } catch { files.value = [] }
 }
 
 const statuteQuery = ref("")
@@ -21,7 +23,7 @@ async function searchStatutes() {
   try {
     const r = await fetch(`${API}/statutes/search`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auth.setTokenHeader() },
       body: JSON.stringify({ keyword: statuteQuery.value, limit: 10 }),
     })
     const d = await r.json()
@@ -32,7 +34,7 @@ async function searchStatutes() {
 
 const templates = ref<Template[]>([])
 async function loadTemplates() {
-  try { const r = await fetch(`${API}/templates`); const d = await r.json(); templates.value = (d.data || []).slice(0, 20) } catch { templates.value = [] }
+  try { const r = await fetch(`${API}/templates`, { headers: auth.setTokenHeader() }); const d = await r.json(); templates.value = (d.data || []).slice(0, 20) } catch { templates.value = [] }
 }
 
 const info = ref<Record<string, string>>({})

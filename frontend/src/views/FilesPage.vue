@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
+import { useAuthStore } from "@/stores/auth"
 
 const API = "/api/v1"
+const auth = useAuthStore()
 
 interface FileEntry { id: number; name: string; size: number; type: string; status: string; chunks: number; created_at: string }
 interface Folder { id: number; name: string; root_path: string; case_number: string; description: string }
@@ -23,25 +25,25 @@ const previewTab = ref<"preview" | "content" | "info">("preview")
 
 async function loadFiles() {
   loading.value = true
-  try { const r = await fetch(`${API}/files`); const d = await r.json(); files.value = d.data || [] } catch { }
+  try { const r = await fetch(`${API}/files`, { headers: auth.setTokenHeader() }); const d = await r.json(); files.value = d.data || [] } catch { }
   loading.value = false
 }
 async function loadFolders() {
-  try { const r = await fetch(`${API}/files/folders`); const d = await r.json(); folders.value = d.data || [] } catch { }
+  try { const r = await fetch(`${API}/files/folders`, { headers: auth.setTokenHeader() }); const d = await r.json(); folders.value = d.data || [] } catch { }
 }
 async function importByPath() {
   if (!importPath.value.trim()) return
-  try { await fetch(`${API}/files/import`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: importPath.value }) }); importPath.value = ""; showImport.value = false; await loadFiles() } catch { }
+  try { await fetch(`${API}/files/import`, { method: "POST", headers: { "Content-Type": "application/json", ...auth.setTokenHeader() }, body: JSON.stringify({ path: importPath.value }) }); importPath.value = ""; showImport.value = false; await loadFiles() } catch { }
 }
 async function handleUpload() {
   if (!uploadFile.value) return
   const form = new FormData()
   form.append("file", uploadFile.value)
   form.append("folder_id", "0")
-  try { await fetch(`${API}/files/upload`, { method: "POST", body: form }); uploadFile.value = null; await loadFiles() } catch { }
+  try { await fetch(`${API}/files/upload`, { method: "POST", headers: auth.setTokenHeader(), body: form }); uploadFile.value = null; await loadFiles() } catch { }
 }
 async function parseFile(id: number) {
-  try { await fetch(`${API}/files/${id}/parse`, { method: "POST" }); await loadFiles() } catch { }
+  try { await fetch(`${API}/files/${id}/parse`, { method: "POST", headers: auth.setTokenHeader() }); await loadFiles() } catch { }
 }
 function onDragOver(e: DragEvent) { e.preventDefault(); dragOver.value = true }
 function onDragLeave() { dragOver.value = false }
@@ -53,11 +55,11 @@ function onDrop(e: DragEvent) {
 }
 async function deleteFile(id: number, name: string) {
   if (!confirm(`确认删除 "${name}"？`)) return
-  try { await fetch(`${API}/files/${id}`, { method: "DELETE" }); await loadFiles() } catch { }
+  try { await fetch(`${API}/files/${id}`, { method: "DELETE", headers: auth.setTokenHeader() }); await loadFiles() } catch { }
 }
 async function createFolder() {
   if (!folderName.value || !folderPath.value) return
-  try { await fetch(`${API}/files/folders`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: folderName.value, root_path: folderPath.value }) }); folderName.value = ""; folderPath.value = ""; showFolder.value = false; await loadFolders() } catch { }
+  try { await fetch(`${API}/files/folders`, { method: "POST", headers: { "Content-Type": "application/json", ...auth.setTokenHeader() }, body: JSON.stringify({ name: folderName.value, root_path: folderPath.value }) }); folderName.value = ""; folderPath.value = ""; showFolder.value = false; await loadFolders() } catch { }
 }
 
 function formatSize(bytes: number) {
@@ -98,7 +100,7 @@ async function openPreview(f: FileEntry) {
   if (!isImage(f.name) && !isPdf(f.name)) {
     previewLoading.value = true
     try {
-      const r = await fetch(`${API}/files/${f.id}/content`)
+      const r = await fetch(`${API}/files/${f.id}/content`, { headers: auth.setTokenHeader() })
       const d = await r.json()
       if (d.ok) previewContent.value = d.data?.content || "[空文件]"
     } catch { previewContent.value = "[无法加载文件内容]" }

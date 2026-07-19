@@ -3,10 +3,12 @@ import { ref, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { marked } from "marked"
 import DOMPurify from "dompurify"
+import { useAuthStore } from "@/stores/auth"
 
 const API = "/api/v1"
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const doc = ref<any>(null)
 const loading = ref(true)
@@ -14,7 +16,7 @@ const loading = ref(true)
 async function loadDoc() {
   loading.value = true
   try {
-    const r = await fetch(`${API}/documents/${route.params.uuid}`)
+    const r = await fetch(`${API}/documents/${route.params.uuid}`, { headers: auth.setTokenHeader() })
     const d = await r.json()
     if (d.ok) doc.value = d.data
     else router.push("/documents")
@@ -27,7 +29,7 @@ async function exportDoc(fmt: string) {
 async function regenerate() {
   if (!confirm("确认重新生成？当前内容将被覆盖")) return
   try {
-    const r = await fetch(`${API}/documents/${route.params.uuid}/regenerate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ case_name: doc.value?.case_name || "", doc_type: doc.value?.doc_type || "起诉状" }) })
+    const r = await fetch(`${API}/documents/${route.params.uuid}/regenerate`, { method: "POST", headers: { "Content-Type": "application/json", ...auth.setTokenHeader() }, body: JSON.stringify({ case_name: doc.value?.case_name || "", doc_type: doc.value?.doc_type || "起诉状" }) })
     const d = await r.json()
     if (d.ok) await loadDoc()
   } catch { }

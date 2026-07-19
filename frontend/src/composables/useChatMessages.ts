@@ -1,6 +1,12 @@
 import { ref } from "vue"
+import { useAuthStore } from "@/stores/auth"
 
 const API = "/api/v1"
+
+function authHeaders(): Record<string, string> {
+  const store = useAuthStore()
+  return store.setTokenHeader()
+}
 
 export interface StreamMsg {
   id: string
@@ -54,7 +60,7 @@ export function useChatMessages() {
     try {
       const r = await fetch(`${API}/agent/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           session_uuid: sessionUuid,
           message: text,

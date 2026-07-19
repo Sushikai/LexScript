@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
+import { useAuthStore } from "@/stores/auth"
 
 const API = "/api/v1"
 const router = useRouter()
+const auth = useAuthStore()
 
 interface Document { uuid: string; title: string; doc_type: string; case_name: string; status: string; created_at: string; updated_at: string }
 interface FileItem { id: number; name: string; status: string; mime: string }
@@ -33,7 +35,7 @@ const hasMore = ref(true)
 async function loadDocs() {
   loading.value = true
   try {
-    const r = await fetch(`${API}/documents?limit=${limit.value}&offset=${offset.value}`)
+    const r = await fetch(`${API}/documents?limit=${limit.value}&offset=${offset.value}`, { headers: auth.setTokenHeader() })
     const d = await r.json()
     documents.value = d.data || []
     hasMore.value = (d.data || []).length >= limit.value
@@ -45,7 +47,7 @@ async function loadMore() {
   offset.value += limit.value
   loading.value = true
   try {
-    const r = await fetch(`${API}/documents?limit=${limit.value}&offset=${offset.value}`)
+    const r = await fetch(`${API}/documents?limit=${limit.value}&offset=${offset.value}`, { headers: auth.setTokenHeader() })
     const d = await r.json()
     const more = d.data || []
     documents.value.push(...more)
@@ -55,11 +57,11 @@ async function loadMore() {
 }
 
 async function loadFiles() {
-  try { const r = await fetch(`${API}/files?limit=200`); const d = await r.json(); files.value = d.data || [] } catch { }
+  try { const r = await fetch(`${API}/files?limit=200`, { headers: auth.setTokenHeader() }); const d = await r.json(); files.value = d.data || [] } catch { }
 }
 
 async function loadTemplates() {
-  try { const r = await fetch(`${API}/templates`); const d = await r.json(); templates.value = d.data || [] } catch { }
+  try { const r = await fetch(`${API}/templates`, { headers: auth.setTokenHeader() }); const d = await r.json(); templates.value = d.data || [] } catch { }
 }
 
 function toggleFile(id: number) {
@@ -77,7 +79,7 @@ async function generateDoc() {
   try {
     const r = await fetch(`${API}/documents/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auth.setTokenHeader() },
       body: JSON.stringify({
         case_name: caseName.value,
         doc_type: docType.value,
@@ -135,7 +137,7 @@ async function generateDoc() {
 
 async function deleteDoc(uuid: string) {
   if (!confirm("确认删除？")) return
-  try { await fetch(`${API}/documents/${uuid}`, { method: "DELETE" }); loadDocs() } catch { }
+  try { await fetch(`${API}/documents/${uuid}`, { method: "DELETE", headers: auth.setTokenHeader() }); loadDocs() } catch { }
 }
 
 function formatTime(t: string) {

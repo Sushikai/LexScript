@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue"
 import DOMPurify from "dompurify"
+import { useAuthStore } from "@/stores/auth"
 
 const API = "/api/v1"
+const auth = useAuthStore()
 
 interface Template { id: number; name: string; category: string; content: string; variables: string; description: string }
 
@@ -15,10 +17,10 @@ const previewHtml = ref("")
 const saving = ref(false)
 
 async function loadTemplates() {
-  try { const r = await fetch(`${API}/templates`); const d = await r.json(); templates.value = d.data || [] } catch { }
+  try { const r = await fetch(`${API}/templates`, { headers: auth.setTokenHeader() }); const d = await r.json(); templates.value = d.data || [] } catch { }
 }
 async function loadBuiltins() {
-  try { const r = await fetch(`${API}/templates/builtins`); const d = await r.json(); if (d.ok) categories.value = d.data || [] } catch { }
+  try { const r = await fetch(`${API}/templates/builtins`, { headers: auth.setTokenHeader() }); const d = await r.json(); if (d.ok) categories.value = d.data || [] } catch { }
 }
 function editTemplateFn(t: Template) {
   editTemplate.value = { ...t }
@@ -33,9 +35,9 @@ async function saveTemplate() {
   const isNew = !editTemplate.value.id
   try {
     if (isNew) {
-      await fetch(`${API}/templates`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(editTemplate.value) })
+      await fetch(`${API}/templates`, { method: "POST", headers: { "Content-Type": "application/json", ...auth.setTokenHeader() }, body: JSON.stringify(editTemplate.value) })
     } else {
-      await fetch(`${API}/templates/${editTemplate.value.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(editTemplate.value) })
+      await fetch(`${API}/templates/${editTemplate.value.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...auth.setTokenHeader() }, body: JSON.stringify(editTemplate.value) })
     }
     showEditor.value = false; await loadTemplates()
   } catch { }
@@ -43,11 +45,11 @@ async function saveTemplate() {
 }
 async function deleteTemplate(id: number, name: string) {
   if (!confirm(`确认删除模板 "${name}"？`)) return
-  try { await fetch(`${API}/templates/${id}`, { method: "DELETE" }); await loadTemplates() } catch { }
+  try { await fetch(`${API}/templates/${id}`, { method: "DELETE", headers: auth.setTokenHeader() }); await loadTemplates() } catch { }
 }
 async function previewTemplate(t: Template) {
   try {
-    const r = await fetch(`${API}/templates/${t.id}/preview`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variables: {} }) })
+    const r = await fetch(`${API}/templates/${t.id}/preview`, { method: "POST", headers: { "Content-Type": "application/json", ...auth.setTokenHeader() }, body: JSON.stringify({ variables: {} }) })
     const d = await r.json()
     if (d.ok) previewHtml.value = d.data?.content || ""
   } catch { }

@@ -1,7 +1,13 @@
 import { ref, computed } from "vue"
 import type { Session } from "@/types"
+import { useAuthStore } from "@/stores/auth"
 
 const API = "/api/v1"
+
+function authHeaders(): Record<string, string> {
+  const store = useAuthStore()
+  return store.setTokenHeader()
+}
 
 const sessions = ref<Session[]>([])
 const currentSessionId = ref<string | null>(null)
@@ -22,7 +28,7 @@ export function useChatSession() {
     loading.value = true
     error.value = null
     try {
-      const r = await fetch(`${API}/chat/sessions`)
+      const r = await fetch(`${API}/chat/sessions`, { headers: authHeaders() })
       const d = await r.json()
       sessions.value = (d.data || []).map((s: Session) => ({
         ...s,
@@ -42,7 +48,7 @@ export function useChatSession() {
     try {
       const r = await fetch(`${API}/chat/sessions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ title, role, model }),
       })
       const d = await r.json()
@@ -63,7 +69,7 @@ export function useChatSession() {
     currentSessionId.value = uuid
     persistLastSession(uuid)
     try {
-      const r = await fetch(`${API}/chat/sessions/${uuid}`)
+      const r = await fetch(`${API}/chat/sessions/${uuid}`, { headers: authHeaders() })
       const d = await r.json()
       if (d.ok && d.data) {
         return d.data.messages || []
@@ -79,7 +85,7 @@ export function useChatSession() {
     try {
       const r = await fetch(`${API}/chat/sessions/${uuid}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ title }),
       })
       const d = await r.json()
@@ -96,7 +102,7 @@ export function useChatSession() {
 
   async function deleteSession(uuid: string) {
     try {
-      await fetch(`${API}/chat/sessions/${uuid}`, { method: "DELETE" })
+      await fetch(`${API}/chat/sessions/${uuid}`, { method: "DELETE", headers: authHeaders() })
       sessions.value = sessions.value.filter((s) => s.uuid !== uuid)
       if (currentSessionId.value === uuid) {
         currentSessionId.value = null

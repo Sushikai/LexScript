@@ -4,8 +4,13 @@
  */
 import { ref, type Ref } from "vue";
 import type { Message, ToolCall, Session } from "@/types";
+import { useAuthStore } from "@/stores/auth";
 
 const API_BASE = "/api/v1";
+
+function authHeaders(): Record<string, string> {
+  return useAuthStore().setTokenHeader();
+}
 
 export function useAgent() {
   const messages: Ref<Message[]> = ref([]);
@@ -16,7 +21,7 @@ export function useAgent() {
   /** 加载会话列表 */
   async function loadSessions() {
     try {
-      const res = await fetch(`${API_BASE}/chat/sessions`);
+      const res = await fetch(`${API_BASE}/chat/sessions`, { headers: authHeaders() });
       const data = await res.json();
       sessions.value = (data.data || []).map((s: Session) => ({
         ...s,
@@ -32,7 +37,7 @@ export function useAgent() {
     try {
       const res = await fetch(`${API_BASE}/chat/sessions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ title, role }),
       });
       const data = await res.json();
@@ -53,7 +58,7 @@ export function useAgent() {
   async function selectSession(uuid: string) {
     currentSession.value = uuid;
     try {
-      const res = await fetch(`${API_BASE}/chat/sessions/${uuid}`);
+      const res = await fetch(`${API_BASE}/chat/sessions/${uuid}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.ok && data.data) {
         messages.value = (data.data.messages || []).map((m: Message) => ({
@@ -92,7 +97,7 @@ export function useAgent() {
     try {
       const res = await fetch(`${API_BASE}/agent/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           session_uuid: currentSession.value,
           message: text,

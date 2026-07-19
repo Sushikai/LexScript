@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from "vue"
 import { useRouter } from "vue-router"
 import { useToast } from "@/composables/useToast"
+import { useAuthStore } from "@/stores/auth"
 import { useChatSession } from "@/composables/useChatSession"
 import { useChatMessages } from "@/composables/useChatMessages"
 import ChatSessionList from "@/components/chat/ChatSessionList.vue"
@@ -11,6 +12,7 @@ import ChatSuggestionChips from "@/components/chat/ChatSuggestionChips.vue"
 
 const API = "/api/v1"
 const router = useRouter()
+const auth = useAuthStore()
 const { show: showToast } = useToast()
 const {
   sessions,
@@ -78,7 +80,7 @@ const fileInput = ref<HTMLInputElement | null>(null)
 
 async function loadRoles() {
   try {
-    const r = await fetch(`${API}/chat/roles`)
+    const r = await fetch(`${API}/chat/roles`, { headers: auth.setTokenHeader() })
     const d = await r.json()
     if (d.ok) roles.value = d.data
   } catch { /* ignore */ }
@@ -87,8 +89,8 @@ async function loadRoles() {
 async function loadModels() {
   try {
     const [cR, pR] = await Promise.all([
-      fetch(`${API}/config`),
-      fetch(`${API}/config/providers`),
+      fetch(`${API}/config`, { headers: auth.setTokenHeader() }),
+      fetch(`${API}/config/providers`, { headers: auth.setTokenHeader() }),
     ])
     const c = await cR.json()
     const p = await pR.json()
@@ -108,7 +110,7 @@ async function changeModel() {
   try {
     await fetch(`${API}/config`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auth.setTokenHeader() },
       body: JSON.stringify({ model: currentModel.value }),
     })
   } catch { /* ignore */ }
@@ -117,7 +119,7 @@ async function changeModel() {
 async function loadMessagesForSession(uuid: string) {
   clearMessages()
   try {
-    const r = await fetch(`${API}/chat/sessions/${uuid}`)
+    const r = await fetch(`${API}/chat/sessions/${uuid}`, { headers: auth.setTokenHeader() })
     const d = await r.json()
     if (d.ok && d.data) {
       const msgs = d.data.messages || []
@@ -207,7 +209,7 @@ async function uploadAttachedFiles(): Promise<boolean> {
     const fd = new FormData()
     fd.append("file", af.file)
     try {
-      await fetch(`${API}/knowledge/upload`, { method: "POST", body: fd })
+      await fetch(`${API}/knowledge/upload`, { method: "POST", headers: auth.setTokenHeader(), body: fd })
     } catch {
       allOk = false
     }
@@ -309,7 +311,7 @@ function onDislike(_id: string) { /* future: sync to backend */ }
 async function loadSkills() {
   loadingSkills.value = true
   try {
-    const r = await fetch(`${API}/legal-skills`)
+    const r = await fetch(`${API}/legal-skills`, { headers: auth.setTokenHeader() })
     const d = await r.json()
     if (d.ok) skillsData.value = d.data
   } catch { /* ignore */ }
@@ -322,7 +324,7 @@ async function checkActiveSkill() {
     return
   }
   try {
-    const r = await fetch(`${API}/legal-skills/sessions/${currentSessionId.value}/active`)
+    const r = await fetch(`${API}/legal-skills/sessions/${currentSessionId.value}/active`, { headers: auth.setTokenHeader() })
     const d = await r.json()
     if (d.ok) activeSkill.value = d.data?.skill_name || null
   } catch {
@@ -335,7 +337,7 @@ async function applySkill(name: string) {
   try {
     await fetch(`${API}/legal-skills/sessions/${currentSessionId.value}/apply`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auth.setTokenHeader() },
       body: JSON.stringify({ skill_name: name }),
     })
     activeSkill.value = name
@@ -345,7 +347,7 @@ async function applySkill(name: string) {
 async function removeSkill() {
   if (!currentSessionId.value) return
   try {
-    await fetch(`${API}/legal-skills/sessions/${currentSessionId.value}/skill`, { method: "DELETE" })
+    await fetch(`${API}/legal-skills/sessions/${currentSessionId.value}/skill`, { method: "DELETE", headers: auth.setTokenHeader() })
     activeSkill.value = null
   } catch { /* ignore */ }
 }
@@ -361,7 +363,7 @@ function toggleSkills() {
 
 async function loadKbStatus() {
   try {
-    const r = await fetch(`${API}/knowledge/status`)
+    const r = await fetch(`${API}/knowledge/status`, { headers: auth.setTokenHeader() })
     const d = await r.json()
     if (d.ok) kbStatus.value = d.data
   } catch { /* ignore */ }
@@ -370,7 +372,7 @@ async function loadKbStatus() {
 async function loadKbFiles() {
   loadingKb.value = true
   try {
-    const r = await fetch(`${API}/knowledge/files`)
+    const r = await fetch(`${API}/knowledge/files`, { headers: auth.setTokenHeader() })
     const d = await r.json()
     if (d.ok) kbFiles.value = d.data
   } catch { /* ignore */ }
@@ -390,7 +392,7 @@ async function handleUpload(e: Event) {
   try {
     const fd = new FormData()
     fd.append("file", file)
-    await fetch(`${API}/knowledge/upload`, { method: "POST", body: fd })
+    await fetch(`${API}/knowledge/upload`, { method: "POST", headers: auth.setTokenHeader(), body: fd })
     refreshKb()
   } catch { /* ignore */ }
   uploading.value = false
@@ -399,35 +401,35 @@ async function handleUpload(e: Event) {
 
 async function regFile(fileId: number) {
   try {
-    await fetch(`${API}/knowledge/reg/${fileId}`, { method: "POST" })
+    await fetch(`${API}/knowledge/reg/${fileId}`, { method: "POST", headers: auth.setTokenHeader() })
     refreshKb()
   } catch { /* ignore */ }
 }
 
 async function reindexFile(fileId: number) {
   try {
-    await fetch(`${API}/knowledge/reindex/${fileId}`, { method: "POST" })
+    await fetch(`${API}/knowledge/reindex/${fileId}`, { method: "POST", headers: auth.setTokenHeader() })
     refreshKb()
   } catch { /* ignore */ }
 }
 
 async function retryFailedKb() {
   try {
-    await fetch(`${API}/knowledge/retry-failed`, { method: "POST" })
+    await fetch(`${API}/knowledge/retry-failed`, { method: "POST", headers: auth.setTokenHeader() })
     refreshKb()
   } catch { /* ignore */ }
 }
 
 async function regAllKb() {
   try {
-    await fetch(`${API}/knowledge/reg-all`, { method: "POST" })
+    await fetch(`${API}/knowledge/reg-all`, { method: "POST", headers: auth.setTokenHeader() })
     refreshKb()
   } catch { /* ignore */ }
 }
 
 async function importAllKb() {
   try {
-    await fetch(`${API}/knowledge/import`, { method: "POST" })
+    await fetch(`${API}/knowledge/import`, { method: "POST", headers: auth.setTokenHeader() })
     refreshKb()
   } catch { /* ignore */ }
 }

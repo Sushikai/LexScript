@@ -29,7 +29,7 @@ async function loadConfig() {
   try {
     const [cR, pR] = await Promise.all([
       fetch(`${API}/config`, { headers: auth.setTokenHeader() }),
-      fetch(`${API}/config/providers`),
+      fetch(`${API}/config/providers`, { headers: auth.setTokenHeader() }),
     ])
     const c = await cR.json()
     const p = await pR.json()
@@ -63,7 +63,7 @@ async function setupProvider(key: string) {
   try {
     const saveR = await fetch(`${API}/config`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auth.setTokenHeader() },
       body: JSON.stringify({
         provider: key,
         api_key: apiKey,
@@ -78,7 +78,7 @@ async function setupProvider(key: string) {
 
     const testR = await fetch(`${API}/config/test`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auth.setTokenHeader() },
       body: JSON.stringify({
         api_key: apiKey,
         base_url: p.base_url || "",
