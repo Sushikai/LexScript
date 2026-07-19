@@ -33,6 +33,10 @@ class BulkImportReq(BaseModel):
     directory: str | None = None
 
 
+class CitationReq(BaseModel):
+    text: str
+
+
 @router.post("/search")
 def search_statutes(req: StatuteSearchReq):
     """关键词搜索法条。"""
@@ -105,3 +109,12 @@ def bulk_import_file(req: BulkImportReq):
         return {"ok": False, "code": "NO_PATH", "message": "请提供文件路径"}
     result = statute_service.bulk_import_from_text(req.directory)
     return {"ok": True, "data": result}
+
+
+@router.post("/citations")
+def find_citations(req: CitationReq):
+    """从文本中检测法条引用并返回最新版本。"""
+    if not req.text.strip():
+        return {"ok": True, "data": []}
+    citations = statute_service.find_citations(req.text)
+    return {"ok": True, "data": citations}

@@ -1,7 +1,7 @@
 """法条检索 Tool。"""
 from __future__ import annotations
 from app.core.agent.tool import BaseTool, ToolSpec, ToolResult
-from app.services.statute_service import search_statutes, list_categories
+from app.services.statute_service import search_statutes, list_categories, find_citations
 
 
 class StatuteSearchTool(BaseTool):
@@ -59,5 +59,31 @@ class StatuteCategoriesTool(BaseTool):
         try:
             cats = list_categories()
             return ToolResult(success=True, data=cats)
+        except Exception as e:
+            return ToolResult(success=False, error=str(e))
+
+
+class StatuteCitationTool(BaseTool):
+    @property
+    def spec(self) -> ToolSpec:
+        return ToolSpec(
+            name="statute_citations",
+            description="从卷宗/案情描述文本中检测法条引用（第XX条、《民法典》第X条等），返回最新版本的法条内容",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "包含法条引用的文本"},
+                },
+                "required": ["text"],
+            },
+        )
+
+    async def execute(self, **kwargs) -> ToolResult:
+        text = kwargs.get("text", "")
+        if not text:
+            return ToolResult(success=False, error="text 不能为空")
+        try:
+            citations = find_citations(text)
+            return ToolResult(success=True, data=citations)
         except Exception as e:
             return ToolResult(success=False, error=str(e))

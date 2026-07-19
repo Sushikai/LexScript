@@ -4,7 +4,7 @@ from app.core.agent.registry import registry
 from app.core.agent.tools.file_tool import FileListTool, FileImportTool, FileParseTool
 from app.core.agent.tools.search_tool import HybridSearchTool, SemanticSearchTool
 from app.core.agent.tools.document_tool import DocumentGenerateTool, DocumentListTool
-from app.core.agent.tools.statute_tool import StatuteSearchTool, StatuteCategoriesTool
+from app.core.agent.tools.statute_tool import StatuteSearchTool, StatuteCategoriesTool, StatuteCitationTool
 from app.core.agent.tools.template_tool import TemplateListTool, TemplatePreviewTool
 from app.core.agent.tools.knowledge_tool import (
     KbListTool, KbReadTool, KbWriteTool, KbCreateFileTool,
@@ -30,6 +30,7 @@ def register_all_tools():
     # 法条工具
     registry.register(StatuteSearchTool())
     registry.register(StatuteCategoriesTool())
+    registry.register(StatuteCitationTool())
 
     # 模板工具
     registry.register(TemplateListTool())
